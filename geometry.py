@@ -167,7 +167,7 @@ class Matrix: ##################################################################
                               Vector(self.a*other.dir.x + self.c*other.dir.y,
                                      self.b*other.dir.x + self.d*other.dir.y),
                               other.wid)
-        elif isinstance(a, int) or isinstance(a, float):    # Matrix-Scalar multiplication
+        elif isinstance(other, int) or isinstance(other, float):    # Matrix-Scalar multiplication
             return Matrix(self.a*other, self.b*other, self.c*other, self.d*other)
         else:
             print NotImplemented
@@ -184,13 +184,13 @@ class Matrix: ##################################################################
     def __abs__(self):
         return self.det()
     
-    def setOffset(v):
+    def setOffset(self, v):
         if isinstance(other, Vector):
             self.e = v.x
             self.f = v.y
         else:
             return NotImplemented
-    def getOffset(v):
+    def getOffset(self):
         return Vector(self.e, self.f)
     
     def det(self):      # Returns the determinant of the matrix
@@ -198,7 +198,6 @@ class Matrix: ##################################################################
     
     def __len__(self):  # len( mat ) = mat.det()
         return self.det()
-
 
 ####  VECTOR  ##################################################################################
 class Vector: ##################################################################################
@@ -339,11 +338,12 @@ class Polyline: ################################################################
 #    bbur = Vector(0,0)  # and upper-right corners of the bounding box (decrepetated).
 
     ##### INITIATION #####======================================================================
-    def __init__(self, points=[], closed=False, reverse=False):    # Initialize open/closed polyline with points
+    def __init__(self, points=[], closed=False, reverse=False, material=1):    # Initialize open/closed polyline with points
         self.points = points
         self.closed = closed
         self.size = len(points)
         self.reverse = reverse      # 'reversed' decides whether the start of the polyline is the first index in the list or the last...
+        self.material = material
         
     ##### OPERATORS #####=======================================================================
     def __repr__(self):     # Returns the vector in (x,y) form
@@ -391,7 +391,7 @@ class Polyline: ################################################################
         else:
             return NotImplemented
     def __mul__(self, other):           # Multiplies every point by other. Type checking left to the Vector class.
-        return Polyline( list( point*other for point in self.points ), self.closed)
+        return Polyline( list( other*point for point in self.points ), self.closed)
     def __div__(self, scalar):
         return Polyline( list( point/other for point in self.points ), self.closed)
     def __neg__(self):
@@ -479,7 +479,7 @@ class Polyline: ################################################################
     def plotPerp(self): # Plots the perps of the polyline using MATPLOTLIB
         if self.size > 0:
             for i in range(0, self.size - 1):
-                line( self.points[i], self.points[i] + (self.points[i+1] - self.points[i]).perp().unit() )
+                plotLine( self.points[i], self.points[i] + (self.points[i+1] - self.points[i]).perp().unit() )
 
     def perp(self, i, type, width=1.0, vector=None):    # 'vector' used for i=0, i=size-1
 #        print type, width
@@ -514,6 +514,8 @@ class Polyline: ################################################################
 #        print v, w, math.sqrt((1 + v * w)/2)
 
         if type == 0:   # Sharp
+#            print v, w
+#            print i, 1 + v * w
             return self.points[i] + (v.perp() + w.perp()).unit() * width / math.sqrt((1 + v * w)/2) #math.cos(math.acos(v * w)/2)
         if type == 1:   # Round
             return NotImplemented
@@ -542,8 +544,8 @@ class Polyline: ################################################################
                     intersection.plot()
 #                    print intersection, i, j
 #                    print self[i], v, other[j], w
-                    line(self[i], v)
-                    line(other[j], w)
+                    plotLine(self[i], v)
+                    plotLine(other[j], w)
         return intersections
     def getSelfIntersections(self):
         return NotImplemented
@@ -655,7 +657,6 @@ class Polyline: ################################################################
         else:
             return 0
 
-
 ####  CONNECTION  ##############################################################################
 class Connection: ##############################################################################
     v =   Vector(0,0)
@@ -690,6 +691,22 @@ class Connection: ##############################################################
     def __ge__(self, other):
         return self.width >= other.width
     
+    # Sums etc
+    def __add__(self, other):
+        if isinstance(other, Vector):
+            return Connection(self.v + other, self.dir.copy(), self.wid)
+    def __sub__(self, other):
+        if isinstance(other, Vector):
+            return Connection(self.v - other, self.dir.copy(), self.wid)
+    def __mul__(self, other):
+        if isinstance(other, Matrix):
+            return Connection(other * self.v, (other * self.dir) - other.getOffset(), self.wid)
+    def __div__(self, scalar):
+        if scalar == 0:
+            print "Error, tried to divide by zero!"
+            return Vector(0,0)
+        else:
+            return Shape( list( polyline/other for polyline in self.polylines ), list(self.connections))
     def __neg__(self):
         return Connection(self.v, -self.dir, self.wid)
     def __pos__(self):
@@ -698,7 +715,10 @@ class Connection: ##############################################################
         return self.width
 
     def matrix(self):
-        return Matrix(self.dir.x, -self.dir.y, self.dir.y, self.dir.x, self.v.x, self.v.y)
+        return Matrix(-self.dir.x, -self.dir.y, self.dir.y, -self.dir.x, self.v.x, self.v.y)
+
+    def plot(self):
+        plotLine(self.v, self.v+self.dir)
 
 
 def getIntersection(a, da, b, db):
@@ -716,10 +736,7 @@ def getIntersection(a, da, b, db):
     else:
         print "Vectors are parallel or something is wrong..."
 
-
-
-
-def getPerpIntersection(a, da, b): # Finds a 'c' such that (c-a) is perpendicular to (c-b) and (c-a) is in the direciton of da.
+def getPerpIntersection(a, da, b): # Finds a 'c' such that (c-a) is perpendicular to (c-b) and (c-a) is in the direction of da.
     return NotImplemented
 
 def getLineIntersection(a, b, A, B, tellTruth=False):    # Gets the intersection between the lines defined by a -> b and A -> B. If no intersection, returns False. 'tellTruth' is for the special case where the lines are identical.
@@ -773,7 +790,7 @@ def getLineIntersection(a, b, A, B, tellTruth=False):    # Gets the intersection
         else:
             return False
 
-def line(a, b):
+def plotLine(a, b):
     xlist = [a.x, b.x]
     ylist = [a.y, b.y]
     plt.plot(xlist, ylist, 'r')

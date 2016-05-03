@@ -1,28 +1,12 @@
 from shapes import Shape, precision, printPrecision, circle, arc, qBezier, thickenPolyline, rect, connect
 from geometry import Vector, Polyline, getIntersection, Connection
-from font import TTF
-from loading import GDSinfo
+from loading import GDSinfo, TTF
+from example_project import example_project
 
 import matplotlib.pyplot as plt
 
 def fontTest(string="TrueType"):
-#    font1 = TTF("/Users/I/Desktop/diamondGDS/Arial.ttf")
-#    font2 = TTF("/Users/I/Desktop/diamondGDS/Pilgiche.ttf")
-    font1 = TTF("/Users/I/Desktop/diamondGDS/courier-bold.ttf")
-#    font1 = TTF("/Users/I/Desktop/diamondGDS/fish.ttf")
-
-#    dv = Vector(1200,0)/1500.
-#    v = Vector(0,1)
-#    w = Vector(0,0)
-#
-#    for char in string:
-#        polyline = font1[char]
-#        (polyline + v).plot()
-#        v += dv
-#    
-#        polyline = font2[char]
-#        (polyline + w).plot()
-#        w += dv
+    font1 = TTF("/Users/I/Desktop/diamondGDS/fonts/courier-bold.ttf")
     font1.shapeFromString(string).plot()
 
 def intersectionTest():
@@ -155,15 +139,17 @@ def exportTest2():
 #                break
 #                break
 
-fontTest("Glorious TrueType 1234567890")
+#fontTest("Glorious TrueType 1234567890")
 
 #intersectionTest()
-gratingTest()
+#gratingTest()
 #connectionTest("QBEZIER")
 #connectionTest("CIRCULAR")
 #exportTest2()
 #
 #importTest()
+
+example_project("/Users/I/Desktop/diamondGDS/gds/test3.gds")
 
 plt.grid(True)
 plt.gca().set_aspect('equal', adjustable='box')

@@ -56,16 +56,16 @@ class Shape: ###################################################################
     # Sums etc
     def __add__(self, other):
         if isinstance(other, Vector):
-            return Shape( list( polyline + other for polyline in self.polylines ), list(self.connections))
+            return Shape( list( polyline + other for polyline in self.polylines ), list( connection + other for connection in self.connections ))
         elif isinstance(other, Shape):
-            return NotImplemented
+            return Shape( self.polylines + other.polylines, self.connections + other.connections)
     def __sub__(self, other):
         if isinstance(other, Vector):
-            return Shape( list( polyline - other for polyline in self.polylines ), list(self.connections))
+            return Shape( list( polyline - other for polyline in self.polylines ), list( connection - other for connection in self.connections ))
         elif isinstance(other, Shape):
             return NotImplemented
     def __mul__(self, other):
-        return Shape( list( polyline*other for polyline in self.polylines ), list(self.connections))
+        return Shape( list( polyline*other for polyline in self.polylines ), list( connection*other for connection in self.connections ))
     def __div__(self, scalar):
         if scalar == 0:
             print "Error, tried to divide by zero!"
@@ -113,12 +113,6 @@ class Shape: ###################################################################
     def sizeCalc(self):
         self.size = len(self.polylines)
         return self.size
-
-#    def addThickenedPolyline(self):
-#
-#    def addCircle(self):
-#    
-#    def union(other):
 
 def linear(p0, p1, p=precision):
     toReturn = Polyline([], False)
@@ -185,6 +179,10 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
     else:
         f = f_
 
+    if i == f:
+        print "Error: There is no distance to connect..."
+        return None
+
     if type == "LINEAR" or di == None or df == None:
         return Polyline([i, f], False)
     elif di * df == 1 and abs(di * (f-i).unit()) == 1:
@@ -206,8 +204,9 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
                 print "Error: Intersection could not be found; returning linear path"
                 return Polyline([i, f], False)
         elif type == "CBEZIER":
-            c = getIntersection(i, di, f, df)
-            return NotImplemented
+            l = (f - i).norm()/2
+#            c = getIntersection(i, di, f, df)
+            return cBezier(i, i + di*l, f + df*l, f);
         elif type == "CIRCULAR":
             # Find the Radius of the two circles (confusing math that I won't explain):
             D =  f -  i
@@ -342,6 +341,7 @@ def thickenPolyline(polyline_,
     
     if isinstance(polyline_, list):
         [polyline, di, df] = polyline_
+        df = -df
     else:
         polyline = polyline_
         di = None
@@ -366,16 +366,22 @@ def thickenPolyline(polyline_,
     currentLength = 0
     
     if widthType == 1 or widthType == 2 or widthType == 3:
-        for i in range(0, polyline.size - 1):       # Check here...
-            segmentLength = (polyline.points[i] - polyline.points[i-1]).norm()
-            if segmentLength > 2*precision:
+        i = 1
+        while i < polyline.size:       # Check here...
+            segmentLength2 = (polyline.points[i] - polyline.points[i-1]).norm2()
+            if segmentLength2 > 4*precision*precision:
                 print "Length short, adding linear"
-                addition = linear(polyline.points[i], polyline.points[i-1])
-                polyline.points = polyline.points[0:i] + addition.points[1:addition.size - 1] + polyline.points[i+1:]
+                addition = linear(polyline.points[i-1], polyline.points[i])
+                polyline.points = polyline.points[0:i-1] + addition.points + polyline.points[i+1:]
                 polyline.size = len(polyline.points)
-    
-    
+            i += 1
+
+#    polyline.plot()
+#    return
+
     toReturn = Polyline([], True)
+
+#    return toReturn
 
     toReturn.add(polyline.perp(0, filletType, calcWidth(0, widthType, widthParams), di))
     
@@ -401,6 +407,10 @@ def thickenPolyline(polyline_,
     return toReturn
 
 
+def connectAndThicken(i, f, type="CIRCULAR", widthType="CUBIC", capType="FLAT"):
+    connect(i, f, type).plot()
+    print thickenPolyline([connect(i, f, type), i.dir, f.dir], widthType, [i.wid, f.wid], "SHARP", capType)
+    return thickenPolyline([connect(i, f, type), i.dir, f.dir], widthType, [i.wid, f.wid], "SHARP", capType)
 
 def circle(c, r, p=precision):
     if r < p:
