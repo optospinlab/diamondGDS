@@ -6,10 +6,25 @@
 	objectVersion = 46;
 	objects = {
 
+/* Begin PBXFileReference section */
+		08A0496A1CC3493400C4B624 /* diamondGDS.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = diamondGDS.py; sourceTree = "<group>"; };
+		08A0496B1CC3493400C4B624 /* geometry.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = geometry.py; sourceTree = "<group>"; };
+		08A0496C1CC3493400C4B624 /* shapes.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = shapes.py; sourceTree = "<group>"; };
+		08A0496D1CC6A7AC00C4B624 /* font.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = font.py; sourceTree = "<group>"; };
+		08A0496E1CC8560B00C4B624 /* testing.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = testing.py; sourceTree = "<group>"; };
+		08A0496F1CC9528600C4B624 /* loading.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = loading.py; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
 /* Begin PBXGroup section */
 		08A0495F1CC2D58300C4B624 = {
 			isa = PBXGroup;
 			children = (
+				08A0496A1CC3493400C4B624 /* diamondGDS.py */,
+				08A0496D1CC6A7AC00C4B624 /* font.py */,
+				08A0496C1CC3493400C4B624 /* shapes.py */,
+				08A0496B1CC3493400C4B624 /* geometry.py */,
+				08A0496E1CC8560B00C4B624 /* testing.py */,
+				08A0496F1CC9528600C4B624 /* loading.py */,
 			);
 			sourceTree = "<group>";
 		};
@@ -140,6 +155,7 @@
 				DEBUGGING_SYMBOLS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -149,6 +165,7 @@
 		08A049691CC2D58300C4B624 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -174,6 +191,7 @@
 				08A049691CC2D58300C4B624 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
