@@ -242,7 +242,7 @@ class Vector: ##################################################################
         else:                           return NotImplemented
     def __mul__(self, other):
         if isinstance(other, Vector):   return self.x*other.x + self.y*other.y
-        if isinstance(other, Matrix):   return Vector(self.x*other.a + self.y*other.b, self.x*other.c + self.y*other.d)
+        if isinstance(other, Matrix):   return Vector(self.x*other.a + self.y*other.c + other.e, self.x*other.b + self.y*other.d + other.f)
         elif isinstance(other, int) or isinstance(other, float):
             return Vector(self.x*other, self.y*other)
         else:
@@ -380,7 +380,8 @@ class Polyline: ################################################################
         if isinstance(other, Vector):
             return Polyline( list( point + other for point in self.points ), self.closed)
         elif isinstance(other, Polyline):
-            return NotImplemented
+            return Polyline( self.points + other.points, self.closed or other.closed)  # Check for reversed!
+#            return self.add(other)
         else:
             return NotImplemented
     def __sub__(self, other):           # If vector is subtracted, subtracts vector from each point in polyline
@@ -391,7 +392,7 @@ class Polyline: ################################################################
         else:
             return NotImplemented
     def __mul__(self, other):           # Multiplies every point by other. Type checking left to the Vector class.
-        return Polyline( list( other*point for point in self.points ), self.closed)
+        return Polyline( list( point*other for point in self.points ), self.closed)
     def __div__(self, scalar):
         return Polyline( list( point/other for point in self.points ), self.closed)
     def __neg__(self):

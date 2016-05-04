@@ -277,6 +277,33 @@ class TTF: #####################################################################
         toReturn.sizeCalc()
         
         return toReturn
+            
+    def shapeFromStringBoundedCentered(self, string, w=0, h=0):
+        shape = self.shapeFromString(string)
+        
+        [bbll, bbur] = shape.getBoundingBox()
+        c = (bbll + bbur)/2
+        
+        if w < 0 and h < 0:
+            return shape - c
+        elif w < 0:
+            w = h
+        elif h < 0:
+            h = w
+        
+        sw = (bbur-bbll).x
+        sh = (bbur-bbll).y
+        
+        if sw < 0 or sh < 0:
+            print "something went horribly wrong..."
+        
+        ratioShape = sw/sh
+        ratioBound = w/h
+        
+        if ratioBound > ratioShape:
+            return (shape - c)*(w/sw)
+        elif ratioBound <= ratioShape:
+            return (shape - c)*(h/sh)
 
 
 ####  GDStime  ################################################################################

@@ -37,10 +37,10 @@ def gratingMike(connection):
             
 #    base = connection.matrix() * base
     base *= connection.matrix()
-    print connection.matrix()
-    
+#    print connection.matrix()
+
     base.connections += [connection]
-    base.plot()
+#    base.plot()
     connection.plot()
     
     return base
