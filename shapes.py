@@ -2,7 +2,9 @@ import math
 from geometry import Matrix, Vector, Polyline, Connection, getIntersection, plotLine, sign
 
 global precision
-precision = .05
+#precision = .05
+precision = 1
+#precision = .05
 
 def printPrecision():
     print precision
@@ -94,6 +96,10 @@ class Shape: ###################################################################
         for polyine in self.polylines:
             polyine.plot()
 
+    def setMaterial(self, material):
+        for polyline in self.polylines:
+            polyline.material = material;
+        return self
 
     def getBoundingBox(self):
         if self.size >= 1:
@@ -119,6 +125,18 @@ class Shape: ###################################################################
         self.size = len(self.polylines)
         return self.size
 
+    def intersect(self, other):
+        if isinstance(other, Polyline):
+#            print "isPolyline"
+            toReturn = other.copy();
+            
+            for polyline in self.polylines:
+                print polyline
+                toReturn = (polyline).intersect(toReturn);
+
+            return toReturn;
+
+
 def linear(p0, p1, p=precision):
     toReturn = Polyline([], False)
     
@@ -139,6 +157,9 @@ def qBezier(p0, p1, p2, p=precision):   # See wikipedia
     
     estimatedLength = (p1-p0).norm() + (p2-p1).norm()
     steps = int(math.ceil(estimatedLength/p))
+    
+    if steps > 1e4:          # Arbitrary, check this....
+        return Polyline([], False)
     
     toReturn.add(p0.copy())
     
@@ -190,9 +211,9 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
 
     if type == "LINEAR" or di == None or df == None:
         return Polyline([i, f], False)
-    elif di * df == 1 and abs(di * (f-i).unit()) == 1:
-        return Polyline([i, f], False)
     elif di * df == -1 and abs(di * (f-i).unit()) == 1:
+        return Polyline([i, f], False)
+    elif di * df == 1 and abs(di * (f-i).unit()) == 1:
         print "Sorry, can't make this path"
         return None
     else:
@@ -204,10 +225,12 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
             c = getIntersection(i, di, f, df)
             
             if c is not None:
-                return qBezier(i, c, f)
-            else:
-                print "Error: Intersection could not be found; returning linear path"
-                return Polyline([i, f], False)
+                if (c-i)*di > 1e-10 and (c-f)*df > 1e-10:
+                    print (c-i)*di, (c-f)*df
+                    return qBezier(i, c, f)
+        
+            print "Error: Intersection could not be found; returning linear path"
+            return None #Polyline([i, f], False)
         elif type == "CBEZIER":
             l = (f - i).norm()/2
 #            c = getIntersection(i, di, f, df)
@@ -215,82 +238,176 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
         elif type == "CIRCULAR":
             # Find the Radius of the two circles (confusing math that I won't explain):
             D =  f -  i
-            rlist = [None, None, None, None]
             
+            
+            d = df.perp() - di.perp()
+            a = (d.norm2() - 4)
+            b = 2*(d*D)
+            c = D.norm2()
+            
+            lList = [None, None, None, None]
+            paramList = [None, None, None, None]
+            rlist = [getRoot(a,b,c,1), getRoot(a,b,c,-1)]
+            
+            print rlist
+
             j = 0
-            for d in [df.perp() + di.perp(), df.perp() - di.perp()]:
-                a = (d.norm2() - 4)
-                b = 2*(d*D)
-                c = D.norm2()
-                
-                rlist[j] =      getRoot(a,b,c,s=1)
-                rlist[j-1] =    getRoot(a,b,c,s=-1)
-            
-                j += 2
-            
-#            print rlist
+            for r in rlist:
+                for s in [1, -1]:
+                    if r != None:
+                        ci = i + di.perp()*(s*r)
+                        cf = f + df.perp()*(s*r)
+                        
+                        m = (ci + cf)/2
+                        
+                        if abs((cf - ci).norm2() - 4*r*r) < 1e-6:
+                            lList[j] = abs(r)*(abs(getArcAng(ci, i, m, (m-i)*di > 0)) + abs(getArcAng(cf, m, f, (m-f)*df > 0)))
 
-            minr = "inf"
+                    j += 1
+
+            minl = "inf"
             minj = -1
-            for j in range(0,3):
-                if rlist[j] != None and abs(rlist[j]) < minr:
-                    minr = abs(rlist[j])
+            for j in range(0,4):
+#                print j, lList[j]
+                if lList[j] != None and lList[j] < minl:
+                    minl = lList[j]
                     minj = j
-          
-            # With knowledge of the radius, find the centers
-            r = minr
-            if   minj == 0 or minj == 1:
-#                print i
-#                print di.perp()*r
-                ci = i + di.perp()*r
-                cf = f + df.perp()*r
-                
-#                print (cf - ci).norm2(), 4*r*r
 
-                if (cf - ci).norm2() - 4*r*r > 1e-6:    # Arbitrary error!
-                    ci = i - di.perp()*r
-                    cf = f - df.perp()*r
-                
-#                    print (cf - ci).norm2(), 4*r*r
+            j = 0
+            for r in rlist:
+                for s in [1, -1]:
+                    if j == minj:
+                        ci = i + di.perp()*(s*r)
+                        cf = f + df.perp()*(s*r)
+                        
+                        m = (ci + cf)/2
 
-                    if (cf - ci).norm2() - 4*r*r > 1e-6:    # Arbitrary error!
-                        print "Error occured with radius checking"
-                        return None
-            elif minj == 2 or minj == 3:
-                ci = i + di.perp()*r
-                cf = f - df.perp()*r
-                
-#                print (cf - ci).norm2(), 4*r*r
+                        toReturn = Polyline()
+                        toReturn.add(arc(ci, i, m, (m-i)*di > 0))
+                        toReturn.add(arc(cf, m, f, (m-f)*df > 0))
+
+                        return toReturn
+
+                    j += 1
+#            return toReturn
+
+#            r1 = getRoot(a,b,c,1)
+#            
+#            ci1 = i - di.perp()*r1
+#            cf1 = f - df.perp()*r1
+#            
+#            if abs((cf1 - ci1).norm2() - 4*r1*r1) > 1e-6:
+#                ci1 = i + di.perp()*r1
+#                cf1 = f + df.perp()*r1
+#            
+#            m1 = (ci1 + cf1)/2
+#            l1 = getArcAng(ci1, i, m1, (m1-i)*di > 0) + getArcAng(cf1, m1, f, (m1-f)*df > 0)
+#
+#
+#            r2 = getRoot(a,b,c,-1)
+#            
+#            ci2 = i + di.perp()*r2
+#            cf2 = f + df.perp()*r2
+#            
+#            if abs((cf1 - ci1).norm2() - 4*r2*r2) > 1e-6:
+#                ci2 = i - di.perp()*r2
+#                cf2 = f - df.perp()*r2
+#
+#            m2 = (ci1 + cf1)/2
+#            l2 = getArcAng(ci2, i, m2, (m2-i)*di > 0) + getArcAng(cf2, m2, f, (m2-f)*df > 0)
+#
+#            if r1*l1 < r2*l2:
+#                m = m1
+#                ci = ci1
+#                cf = cf1
+#            else:
+#                m = m2
+#                ci = ci2
+#                cf = cf2
+
+
+            
+#            for d in [df.perp() - di.perp()]: #, df.perp() + di.perp()]:
+#                a = (d.norm2() - 4)
+#                b = 2*(d*D)
+#                c = D.norm2()
+#                
+#                rlist[j] =      getRoot(a,b,c,1)
+#                rlist[j-1] =    getRoot(a,b,c,-1)
+#            
+#                j += 2
+#            
+#            print rlist
+#
+#            minr = "inf"
+#            minj = -1
+#            for j in range(0,3):
+#                if rlist[j] != None and abs(rlist[j]) < minr:
+#                    minr = abs(rlist[j])
+#                    minj = j
+#
+##            minjList = []
+##
+##            for j in range(0,3):
+##                if rlist[j] != None and abs(rlist[j]) == minr:
+##                    minjList += [j]
+##
+##            if len(minjList) > 1:
+##                for j in minrList:
+#
+#
+#            # With knowledge of the radius, find the centers
+#            r = minr
+#            print r
+#            if minj == 0 or minj == 1:
+##                print i
+##                print di.perp()*r
+#                ci = i + di.perp()*r
+#                cf = f + df.perp()*r
+#                
 #                print (cf - ci).norm2()- 4*r*r
-#                print "here"
+#
+##                print (cf - ci).norm2(), 4*r*r
+#
+#                if abs((cf - ci).norm2() - 4*r*r) > 1e-6:    # Arbitrary error!
+#                    ci = i - di.perp()*r
+#                    cf = f - df.perp()*r
+#                
+##                    print (cf - ci).norm2(), 4*r*r
+#                    print (cf - ci).norm2()- 4*r*r
+#
+#                    if abs((cf - ci).norm2() - 4*r*r) > 1e-6:    # Arbitrary error!
+#                        print "Error occured with radius checking"
+#                        return None
+#            elif minj == 2 or minj == 3:
+#                ci = i + di.perp()*r
+#                cf = f - df.perp()*r
+#                
+##                print (cf - ci).norm2(), 4*r*r
+#                print (cf - ci).norm2()- 4*r*r
+##                print "here"
+#
+#                if abs((cf - ci).norm2() - 4*r*r) > 1e-6:    # Arbitrary error!
+##                    print "here2"
+#                    ci = i - di.perp()*r
+#                    cf = f + df.perp()*r
+#                
+##                    print (cf - ci).norm2(), 4*r*r
+#                    print (cf - ci).norm2()- 4*r*r
+#
+#                    if abs((cf - ci).norm2() - 4*r*r) > 1e-6:    # Arbitrary error!
+#                        print "Error occured with radius checking"
+#                        return None
+#            else:
+#                # No radius found...
+#                print "Sorry, can't find two minimum circles"
+#                return None
 
-                if (cf - ci).norm2() - 4*r*r > 1e-6:    # Arbitrary error!
-#                    print "here2"
-                    ci = i - di.perp()*r
-                    cf = f + df.perp()*r
-                
-#                    print (cf - ci).norm2(), 4*r*r
+#            plotLine(i, ci)
+#            plotLine(ci, cf)
+#            plotLine(cf, f)
 
-                    if (cf - ci).norm2() - 4*r*r > 1e-6:    # Arbitrary error!
-                        print "Error occured with radius checking"
-                        return None
-            else:
-                # No radius found...
-                print "Sorry, can't find two minimum circles"
-                return None
-            
-            midpoint = (ci + cf)/2
-
-            toReturn = Polyline()
-            
-            toReturn.add(arc(ci, i, midpoint, (i-midpoint)*di < 0))
-            toReturn.add(arc(cf, midpoint, f, (f-midpoint)*df < 0))
-
-            plotLine(i, ci)
-            plotLine(ci, cf)
-            plotLine(cf, f)
-
-            return toReturn
+#            return toReturn
 
         elif type == "MONOCIRCULAR":
 #            print "MONOCIRCULAR"
@@ -317,7 +434,7 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
             if (intersection - i)*di > 0 and (intersection - f)*df > 0:     # Converging
                 if (intersection - i)*di < (intersection - f)*df:
                     midpoint = intersection - df*((intersection - i)*di)
-                    c = getIntersection(i, di.perp(), midpoint, df.perp())
+                    c = getIntersection(i, di.perp(), midpoint, df.perp())  # Check if intersection exists for all of these...
                 
                     return arc(c, i, midpoint) + Polyline([f], False)
                 else:
@@ -337,17 +454,26 @@ def connect(i_, f_, type="CIRCULAR", di=None, df=None):    # "LINEAR", "QBEZIER"
                     
                     return arc(c, i, midpoint, False) + Polyline([f], False)
             else:                                                           # Diverging
-                if (intersection - i)*di > (intersection - f)*df:
-                    midpoint = intersection - df*((intersection - i)*di)
-                    c = getIntersection(i, di.perp(), midpoint, df.perp())
-                    
-                    return arc(c, i, midpoint, False) + Polyline([f], False)
-                else:
+                if (intersection - i)*di > (intersection - f)*df:               # If i is shorter
                     midpoint = intersection - di*((intersection - f)*df)
                     c = getIntersection(midpoint, di.perp(), f, df.perp())
                     
-                    return Polyline([i], False) + arc(c, midpoint, f, False)
-    
+                    print c
+                    
+                    if c.norm2() < 1e6:
+#                        return Polyline([i, midpoint, c, f], False) #arc(c, i, midpoint, False) + Polyline([f], False)
+#                        return arc(c, i, midpoint, False) + Polyline([f], False)
+                        return Polyline([i], False) + arc(c, midpoint, f, False)
+                else:
+                    midpoint = intersection - df*((intersection - i)*di)
+                    c = getIntersection(i, di.perp(), midpoint, df.perp())
+                    
+                    print c
+                    if c.norm2() < 1e6:
+#                        return Polyline([i, c, midpoint, f], False) #+ arc(c, midpoint, f, False)
+#                        return Polyline([i], False) + arc(c, midpoint, f, False)
+                        return arc(c, i, midpoint, False) + Polyline([f], False)
+
 
 #            if (c - i).norm2() < (c - f).norm2():
 #                if (c - i) * di == 0:
@@ -440,7 +566,7 @@ def thickenPolyline(polyline_,
 
 #    return toReturn
 
-    toReturn.add(polyline.perp(0, filletType, calcWidth(0, widthType, widthParams), di))
+    p0 = polyline.perp(0, filletType, calcWidth(0, widthType, widthParams), di)
     
     for i in range(1, polyline.size - 1):
         currentLength += (polyline.points[i] - polyline.points[i-1]).norm()
@@ -448,9 +574,14 @@ def thickenPolyline(polyline_,
 #        print t, calcWidth(t, widthType, widthParams), (polyline.points[i] - polyline.points[i-1])
         toReturn.add(polyline.perp(i, filletType, calcWidth(t, widthType, widthParams)))
     
-    toReturn.add(polyline.perp(polyline.size - 1, filletType, calcWidth(1, widthType, widthParams), df))
-    
-    toReturn.add(polyline.perp(polyline.size - 1, filletType, -calcWidth(1, widthType, widthParams), df))
+    p1 = polyline.perp(polyline.size - 1, filletType, calcWidth(1, widthType, widthParams), df)
+    p2 = polyline.perp(polyline.size - 1, filletType, -calcWidth(1, widthType, widthParams), df)
+
+    if capType == 0:
+        toReturn.add(p1)
+        toReturn.add(p2)
+    elif capType == 1:
+        toReturn.add(arc((p1+p2)/2, p1, p2))
     
     for i in range(polyline.size - 2, 0, -1):
         currentLength -= (polyline.points[i] - polyline.points[i-1]).norm()
@@ -458,14 +589,22 @@ def thickenPolyline(polyline_,
 #        print t, calcWidth(t, widthType, widthParams)
         toReturn.add(polyline.perp(i, filletType, -calcWidth(t, widthType, widthParams)))
 
-    toReturn.add(polyline.perp(0, filletType, -calcWidth(0, widthType, widthParams), di))
+    p3 = polyline.perp(0, filletType, -calcWidth(0, widthType, widthParams), di)
+
+
+    if capType == 0:
+        toReturn.add(p3)
+        toReturn.add(p0)
+    elif capType == 1:
+        toReturn.add(arc((p0+p3)/2, p3, p0))
 
 #    print toReturn
     return toReturn
 
 
 def connectAndThicken(i, f, type="CIRCULAR", widthType="CUBIC", capType="FLAT"):
-    connect(i, f, type).plot()
+#    if isinstance(connect(i, f, type), Polyline):
+#        connect(i, f, type).plot()
 #    print thickenPolyline([connect(i, f, type), i.dir, f.dir], widthType, [i.wid, f.wid], "SHARP", capType)
     return thickenPolyline([connect(i, f, type), i.dir, f.dir], widthType, [i.wid, f.wid], "SHARP", capType)
 
@@ -477,7 +616,7 @@ def circle(c, r, p=precision):
     
     toReturn = Polyline([], True)
 
-    v = Vector(0,r)
+    v = Vector(r,0)
     m = Matrix(2*math.pi/steps)
     
     for i in range(0,steps):
@@ -490,30 +629,67 @@ def circle(c, r, p=precision):
 def rect(a, b):
     return Polyline([a, a + Vector(0,b.y - a.y), b, a + Vector(b.x - a.x, 0)], True)
 
-def arc(c, i, f, chooseShortest=True, p=precision):   # 'direction' : CCW=1, CW=-1, Shortest=0
+def getArcAng(c, i, f, chooseShortest=True):
     r1 = (i - c).norm()
     r2 = (f - c).norm()
     
-    print r1 - r2
+    #    print r1 - r2
     
     if r1 - r2 > 1e-6:  # Arbitrary!
-        print "Can't make an arc with two radii... Choosing smallest radius"
-        return None
-    
-    r = ( r1 if r1 < r2 else r2);
+        print "Can't make an arc with two radii: " + str(r1) + " and " + str(r2)
+        return 1e22  # Arbitrary!
+    if (f - i).norm2() < 1e-6:  # Arbitrary!
+        print "Start and end of arc at same place..."
+        return 0
     
     dir = (i - c).cross(f - c)
-#    print (i - c), (f - c), dir
 
     if dir == 0:
         dir = 1
         print "Arcs are equidistant, choosing CCW as shortest"
 
-#    print ((i - c).Unit()) * ((f - c).Unit()), math.acos(((i - c).Unit()) * ((f - c).Unit()))
-
     ang = dir*math.acos(((i - c).Unit()) * ((f - c).Unit()))
+
+    if not chooseShortest:
+        if ang > 0:
+            ang = ang - 2*math.pi
+        else:
+            ang = 2*math.pi + ang
     
-    print 180*ang/math.pi
+    return ang
+
+def arc(c, i, f, chooseShortest=True, p=precision):   # 'direction' : CCW=1, CW=-1, Shortest=0
+    r1 = (i - c).norm()
+    r2 = (f - c).norm()
+    
+#    print r1 - r2
+
+    if r1 - r2 > 1e-6:  # Arbitrary!
+        print "Can't make an arc with two radii: " + str(r1) + " and " + str(r2)
+        return Polyline([], False)
+    if (f - i).norm2() < 1e-6:  # Arbitrary!
+        print "Start and end of arc at same place..."
+        return Polyline([], False)
+    
+    r = r1
+
+    print (i - c), (f - c)
+
+    dir = (i - c).cross(f - c)
+
+    print "Dir: ", dir
+
+    if dir == 0:
+#        dir = 1
+        ang = -math.pi
+        chooseShortest=True
+        print "Arcs are equidistant, choosing CCW as shortest"
+    else:
+        ang = dir*math.acos(((i - c).Unit()) * ((f - c).Unit()))
+
+#    print (i - c).Unit()
+#    print (f - c).Unit()
+
 
     if not chooseShortest:
         if ang > 0:
@@ -521,20 +697,20 @@ def arc(c, i, f, chooseShortest=True, p=precision):   # 'direction' : CCW=1, CW=
         else:
             ang = 2*math.pi + ang
 
-    print 180*ang/math.pi
-
-#    if dir != 0 and direction != dir:
-#        ang = dir*2*math.pi - ang
-
     if r < p:
         steps = 8
+    elif r > 1000:          # Arbitrary, check this....
+        return Polyline([], False)
     else:
         steps = int(math.ceil(abs(ang)*r/p))
+
+#    print steps, ang, r, p
 
     toReturn = Polyline([], False)
     
     if steps > 0:
         v = (i - c)
+        print ang/steps
         m = Matrix(ang/steps)
             
         toReturn.add(i)

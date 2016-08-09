@@ -1,8 +1,10 @@
 import math
+import shapes
+#from shapes import Shape, precision, printPrecision, circle, arc, qBezier, thickenPolyline, rect
 import matplotlib.pyplot as plt
 
 def sign(x):
-    return 1 if x > 0 else -1 if x < 0 else 0
+    return 1 if x > 1e-6 else -1 if x < -1e-6 else 0
 
 def even(x):
     return math.ceil(x/2.) == math.floor(x/2.)
@@ -43,7 +45,7 @@ class Materials: ###############################################################
     def __getitem__(self, i):
         if isinstance(i, int) and i < self.size:
             return self.materialsList[i]
-        elif isinstance(i, str) and i in materialsDict:
+        elif isinstance(i, str) and i in self.materialsDict:
             return self.materialsList[self.materialsDict[i]]
         else:
             return None
@@ -97,6 +99,23 @@ class Matrix: ##################################################################
         elif a is not None and b is not None and c is not None and d is not None:   # If only e and f are missing, initialize everything except for e and f
             self.a = a; self.c = c
             self.b = b; self.d = d
+        elif a is not None and b is not None and c is not None:     # Rotation with an offset
+#            self = Matrix(a)
+
+            print self
+            
+            if (isinstance(b, int) or isinstance(b, float)) and (isinstance(c, int) or isinstance(c, float)):
+                self.e = b
+                self.f = c
+            
+            if isinstance(a, int) or isinstance(a, float):
+                s = math.sin(a)
+                c = math.cos(a)
+                
+                self.a = c; self.c = -s
+                self.b = s; self.d = c
+        
+            print self
         elif a is not None:                                     # If everything is there, initialize normally,
             if isinstance(a, list) or isinstance(a, tuple):     # If a list/tuple was given, fill the matrix with the list
                 if len(a) >= 4:
@@ -174,9 +193,9 @@ class Matrix: ##################################################################
     def __div__(self, scalar):
         if scalar == 0:
             print "Error, tried to divide by zero!"
-            return Vector(0,0)
+            return Matrix()
         else:
-            return Vector(self.x/scalar, self.y/scalar)
+            return Matrix(self.a/scalar, self.b/scalar, self.c/scalar, self.d/scalar, self.e, self.f)
     def __neg__(self):
         return Matrix(-self.a, -self.b, -self.c, -self.d, -self.e, -self.f)
     def __pos__(self):
@@ -242,7 +261,9 @@ class Vector: ##################################################################
         else:                           return NotImplemented
     def __mul__(self, other):
         if isinstance(other, Vector):   return self.x*other.x + self.y*other.y
-        if isinstance(other, Matrix):   return Vector(self.x*other.a + self.y*other.c + other.e, self.x*other.b + self.y*other.d + other.f)
+        if isinstance(other, Matrix):
+#            print 'here'
+            return Vector(self.x*other.a + self.y*other.c + other.e, self.x*other.b + self.y*other.d + other.f)
         elif isinstance(other, int) or isinstance(other, float):
             return Vector(self.x*other, self.y*other)
         else:
@@ -293,12 +314,19 @@ class Vector: ##################################################################
 
     def unit(self):                             # Returns the vector, normalized
         n = self.norm()
-        return Vector(self.x/n, self.y/n)
+        if n != 0:
+            return Vector(self.x/n, self.y/n)
+        else:
+            print "   Error, tried to divide by zero..."
+            return self.copy()
     def Unit(self):                             # Normalize the vector and return it
         n = self.norm()
         
-        self.x /= n
-        self.y /= n
+        if n != 0:
+            self.x /= n
+            self.y /= n
+        else:
+            print "    Error, tried to divide by zero..."
         
         return self
     
@@ -321,6 +349,14 @@ class Vector: ##################################################################
     def Perp(self):                             # Rotates the vector 90deg CCW, then returns it.
         self.x = -self.y
         self.y = self.x
+        
+        return self
+    
+    def mirror2(self):
+        return Vector(-self.x, -self.y)
+    def Mirror2(self):
+        self.x = -self.x
+        self.y = -self.y
         
         return self
     
@@ -378,27 +414,27 @@ class Polyline: ################################################################
     # Sums etc
     def __add__(self, other):           # If vector is added, adds vector from each point in polyline
         if isinstance(other, Vector):
-            return Polyline( list( point + other for point in self.points ), self.closed)
+            return Polyline( list( point + other for point in self.points ), self.closed, self.reverse, self.material)
         elif isinstance(other, Polyline):
-            return Polyline( self.points + other.points, self.closed or other.closed)  # Check for reversed!
+            return Polyline( self.points + other.points, self.closed or other.closed, self.reverse, self.material)  # Check for reversed!
 #            return self.add(other)
         else:
             return NotImplemented
     def __sub__(self, other):           # If vector is subtracted, subtracts vector from each point in polyline
         if isinstance(other, Vector):
-            return Polyline( list( point - other for point in self.points ), self.closed)
+            return Polyline( list( point - other for point in self.points ), self.closed, self.reverse, self.material)
         elif isinstance(other, Polyline):
             return NotImplemented
         else:
             return NotImplemented
     def __mul__(self, other):           # Multiplies every point by other. Type checking left to the Vector class.
-        return Polyline( list( point*other for point in self.points ), self.closed)
+        return Polyline( list( point*other for point in self.points ), self.closed, self.reverse, self.material)
     def __div__(self, scalar):
-        return Polyline( list( point/other for point in self.points ), self.closed)
+        return Polyline( list( point/other for point in self.points ), self.closed, self.reverse, self.material)
     def __neg__(self):
-        return Polyline( list(self.points), self.closed, not self.reverse)
+        return Polyline( list(self.points), self.closed, not self.reverse, self.material)
     def __pos__(self):
-        return Polyline( list(self.points), self.closed, self.reverse)
+        return Polyline( list(self.points), self.closed, self.reverse, self.material)
     def __abs__(self):
         return NotImplemented
     
@@ -426,6 +462,8 @@ class Polyline: ################################################################
             else:
                 return False
         elif isinstance(other, Polyline):
+            print "isPolyline"
+            print self.size, other.size
             if other.size > 0 and self.size > 0:
                 start = 0
                 while start < other.size and self.points[self.size - 1] == other.points[start]:
@@ -435,11 +473,20 @@ class Polyline: ################################################################
             elif self.size == 0:
                 self.points = other.points[:]
                 self.size = other.size
+            return self
         else:
             print NotImplemented
 
+    def setMaterial(self, material):
+        self.material = material
+
+        return self
+
+    def mirror2(self, scalar):
+        return Polyline( list( point.mirror2() for point in self.points ), self.closed, self.reverse, self.material)
+
     def copy(self):     # Returns a copy of this polyline (because you actually have to worry about this in worst-language-Python)
-        return Polyline(list(self.points), self.closed, self.size)
+        return Polyline(list(self.points), self.closed, self.reverse, self.material)
     
     def length(self):   # Returns the length of the polyline in 2D space. Important: this is different from size...
         if self.size <= 1:
@@ -542,11 +589,12 @@ class Polyline: ################################################################
                 if isinstance(intersection, Vector):
 #                    intersections += [ [intersection, i, j] ]
                     intersections.extend([ [intersection, i, j] ])
-                    intersection.plot()
-#                    print intersection, i, j
-#                    print self[i], v, other[j], w
-                    plotLine(self[i], v)
-                    plotLine(other[j], w)
+#                    intersection.plot()
+##                    print intersection, i, j
+##                    print self[i], v, other[j], w
+#                    plotLine(self[i], v)
+#                    plotLine(other[j], w)
+#        print intersections
         return intersections
     def getSelfIntersections(self):
         return NotImplemented
@@ -559,14 +607,21 @@ class Polyline: ################################################################
     
     def union(self, other):
         if self.closed:
-            toReturn = Polyline([], True, self.reverse)
+            toReturn = Polyline([], True, self.reverse, self.material)
             
+#            self.plot()
+#            other.plot()
+
             intersections = self.getIntersections(other)
 
 #            print intersections
 
-            if not even(len(intersections)):
-                print "Not an even number of intersections! Not sure how this happened..."
+#            if not even(len(intersections)):
+#                print "Not an even number of intersections! Not sure how this happened..."
+#                return None
+
+            if len(intersections) == 0:
+                print "No intersections; returning zero..."
                 return None
             
             addModeSelf = True
@@ -617,10 +672,10 @@ class Polyline: ################################################################
 
             toReturn.size = len(toReturn.points)
             
-            print "AREA:  ", toReturn.area()
-            
-            if toReturn.area() <= 0:    # This might induce infinte recursion...
-                return Polyline.union(other,self)
+#            print "AREA:  ", toReturn.area()
+
+#            if toReturn.area() <= 0:    # This might induce infinte recursion...
+#                return Polyline.union(other,self)
 #            print toReturn.points
 #            
 #            print toReturn
@@ -630,6 +685,48 @@ class Polyline: ################################################################
             return NotImplemented
     def Union(self, other):
         return NotImplemented
+    
+    def intersect(self, other):
+        if isinstance(other, shapes.Shape):
+            toReturn = self.copy()
+        
+            for polyline in other.polylines:
+                if toReturn.intersect(polyline) != None:
+                    toReturn = toReturn.intersect(polyline);
+                return toReturn
+            return
+        
+        sa = self.area();
+        oa = other.area();
+        
+        if oa <= 0:
+            print "Polyline.intersect(): other.area must be greater than zero."
+            return None;
+        
+        if sa >= 0:
+            self.reverse = not self.reverse
+#            print "Polyline.intersect(): self.area must be less than zero."
+#            return None;
+
+        test = self.union(other);
+        
+        if test == None:
+            sc = self.center()
+            
+            w = self[0]
+#            w = self[self.size-1]
+
+            v = w - sc
+
+            self.add(w)
+            self.add(w + v*100)   # This will work in most situations, but not all.
+#            self.add(w)
+
+#            self.plot()s
+
+            return other.union(self);
+        else:
+            return test
 
     def getBoundingBox(self):
         if self.size >= 1:
@@ -648,6 +745,10 @@ class Polyline: ################################################################
             return [bbll, bbur]
         else:
             return None
+
+    def center(self):
+        [bbll, bbur] = self.getBoundingBox()
+        return (bbll + bbur)/2
 
     def area(self):
         if self.closed:
@@ -774,14 +875,18 @@ def getLineIntersection(a, b, A, B, tellTruth=False):    # Gets the intersection
     dX = B.x - A.x
     dY = B.y - A.y
 
-    if dx != 0 and dX == 0:                     # a -> b vertical
+    if dx != 0 and dX == 0:                     # A -> B vertical
         if (A.x >= a.x and A.x <= b.x) or (A.x <= a.x and A.x >= b.x):
-            return Vector(A.x, a.y - (dy/dx)*(A.x-a.x))
+            y = a.y + (dy/dx)*(A.x-a.x)
+            if (y >= A.y and y <= B.y) or (y <= A.y and y >= B.y):
+                return Vector(A.x, y)
         else:
             return False
-    elif dx == 0 and dX != 0:                   # A -> B vertical
+    elif dx == 0 and dX != 0:                   # a -> b vertical
         if (a.x >= A.x and a.x <= B.x) or (a.x <= A.x and a.x >= B.x):
-            return Vector(a.x, A.y - (dY/dX)*(a.x-A.x))
+            y = A.y + (dY/dX)*(a.x-A.x)
+            if (y >= a.y and y <= b.y) or (y <= a.y and y >= b.y):
+                return Vector(a.x, y)
         else:
             return False
     else:                                       # Both not vertical

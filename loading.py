@@ -246,29 +246,32 @@ class TTF: #####################################################################
     def shapeFromString(self, string):
         toReturn = Shape([],[])
         #        dv = Vector(1. + self.linegap/self.width,0)
-        v = Vector(0,1)
+        v = Vector(0,0)
         w = Vector(0,0)
         
         for char in string:
-            letter = self[char]
-            bb = letter.getBoundingBox()
-            if bb != None:
-                wid = bb[1].x - bb[0].x
-                hgt = bb[1].y - bb[0].y
-                shift = bb[0].x
-            else:
-                wid = 1
-                hgt = 1
-                shift = 0
             
 #            plt.plot([v.x, v.x, v.x + wid, v.x + wid, v.x], [v.y, v.y + hgt, v.y + hgt, v.y, v.y])
 
 #            toReturn.polylines.extend( [(letter + v - Vector(shift, 0))] )
-            for polyline in letter.polylines:
-                toReturn.polylines.extend( [(polyline + v - Vector(shift, 0))] )
-#            polyline = self[char]
-#            (polyline + v).plot()
-            v += Vector(wid + .2, 0)
+            if char != '\n':
+                letter = self[char]
+                bb = letter.getBoundingBox()
+                if bb != None:
+                    wid = bb[1].x - bb[0].x
+                    hgt = bb[1].y - bb[0].y
+                    shift = bb[0].x
+                else:
+                    wid = 1
+                    hgt = 1
+                    shift = 0
+                for polyline in letter.polylines:
+                    toReturn.polylines.extend( [(polyline + v - Vector(shift, 0))] )
+    #            polyline = self[char]
+    #            (polyline + v).plot()
+                v += Vector(wid + .2, 0)
+            else:
+                v = Vector(0,v.y-hgt - .6)
 #
 #            polyline = font2[char]
 #            (polyline + w).plot()
@@ -290,6 +293,13 @@ class TTF: #####################################################################
             w = h
         elif h < 0:
             h = w
+        
+        numlines = 1;
+        for char in string:
+            if char == '\n':
+                numlines += 1;
+    
+        h *= (numlines*1.6 - .6);
         
         sw = (bbur-bbll).x
         sh = (bbur-bbll).y
@@ -640,7 +650,7 @@ class GDSinfo: # http://www.cnf.cornell.edu/cnf_spie9.html
 #        print self.shapes
 
         for shape in self.shapes:
-            for polyline in self.polylines:
+            for polyline in shape.polylines:
 
                 # BOUNDARY
                 f.write("\x00\x04\x08\x00")                 # Length 4, token 8, no type

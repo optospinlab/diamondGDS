@@ -5,7 +5,7 @@ from example_components import gratingMike
 
 import matplotlib.pyplot as plt
 
-font = TTF("/Users/I/Desktop/diamondGDS/fonts/courier-bold.ttf")
+font = TTF("/Users/I/Desktop/Desktop/diamondGDS/fonts/courier-bold.ttf")
 
 def example_device(g1, g2, string):
     toReturn = Shape([]);
@@ -40,4 +40,4 @@ def example_project(fname):
 #    gds.exportGDS(fname)
 
 if __name__ == "__main__":
-    example_project("/Users/I/Desktop/diamondGDS/gds/test3.gds") #"/Users/I/Desktop/diamondGDS/gds/test3.gds"
+    example_project("/Users/I/Desktop/Desktop/diamondGDS/gds/test3.gds") #"/Users/I/Desktop/diamondGDS/gds/test3.gds"

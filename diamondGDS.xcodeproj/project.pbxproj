@@ -13,6 +13,7 @@
 		08A0496C1CC3493400C4B624 /* shapes.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = shapes.py; sourceTree = "<group>"; };
 		08A0496E1CC8560B00C4B624 /* testing.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = testing.py; sourceTree = "<group>"; };
 		08A0496F1CC9528600C4B624 /* loading.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = loading.py; sourceTree = "<group>"; };
+		08A564D81D525DEE00F471E4 /* stark.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = stark.py; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -25,6 +26,7 @@
 				08A0496E1CC8560B00C4B624 /* testing.py */,
 				087485B21CD9194500B3BFAF /* example_components.py */,
 				087485B11CD9193800B3BFAF /* example_project.py */,
+				08A564D81D525DEE00F471E4 /* stark.py */,
 			);
 			sourceTree = "<group>";
 		};
