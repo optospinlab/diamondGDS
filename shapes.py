@@ -3,8 +3,9 @@ from geometry import Matrix, Vector, Polyline, Connection, getIntersection, plot
 
 global precision
 #precision = .05
-precision = 1
+#precision = 1
 #precision = .05
+precision = .5
 
 def printPrecision():
     print precision
