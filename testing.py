@@ -5,6 +5,7 @@ from geometry import Vector, Polyline, getIntersection, Connection
 from loading import GDSinfo, TTF
 from example_project import example_project
 from stark import starkRound1
+from stark_r2 import starkRound2
 
 import matplotlib.pyplot as plt
 
@@ -230,7 +231,10 @@ def largeArray(n=8, d=10, wid=.27, kinds=["LINEAR", "QBEZIER", "CBEZIER", "CIRCU
 
 #fontIntersectTest()
 
-starkRound1("/Users/I/Desktop/Desktop/diamondGDS/gds/test3.gds")
+#starkRound1("/Users/I/Desktop/Desktop/diamondGDS/gds/test3.gds")
+starkRound2("/Users/I/Desktop/Desktop/diamondGDS/gds/sr2.gds")
+
+#starkRound2()
 
 plt.grid(True)
 plt.gca().set_aspect('equal', adjustable='box')

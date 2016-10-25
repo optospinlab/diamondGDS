@@ -25,26 +25,26 @@ def capacitor(wirewid=10, wirespace=10, height=1300, width=200, paddepth=100, nu
 #    print length-4*wirespace
 #    print d
 #    print ''
-    circlespacing = 1.5*circlewid
-    
-#    print range(1,numcirclesets)
-
-    c = circle(Vector(0,0), circlewid/2)
-    x = circlewid/4.
-#    c = -rect(Vector(-x,-x), Vector(x,x))
-    c.material = 3;
-    
-#    for y in range(0,numcirclesets+1):
-#        toReturn.add(circle(Vector(-circlewid, y*d + 2.*wirespace), circlewid/2))
-
-    for y in range(1,numcirclesets+1):
-#        print range(0,y)
-
-        for z in range(0,y):
-            print y, z
-            #            circle(Vector(-wirewid/2, (y*d - d/2 + 2*wirespace) - (y*circlespacing/2) + z*circlespacing), circlewid/2).plot()
-            #            wire = (circle(Vector(wirewid/2, (y*d - d/2 + 2*wirespace) - (y*circlespacing/2) + z*circlespacing), circlewid/2)).intersect(wire)
-            wire = (c + Vector(wirewid/2., (y*d - d/2. + 2.*wirespace) - ((y-1)*circlespacing/2.) + z*circlespacing)).intersect(wire)
+#    circlespacing = 1.5*circlewid
+#    
+##    print range(1,numcirclesets)
+#
+#    c = circle(Vector(0,0), circlewid/2)
+#    x = circlewid/4.
+##    c = -rect(Vector(-x,-x), Vector(x,x))
+#    c.material = 3;
+#    
+##    for y in range(0,numcirclesets+1):
+##        toReturn.add(circle(Vector(-circlewid, y*d + 2.*wirespace), circlewid/2))
+#
+#    for y in range(1,numcirclesets+1):
+##        print range(0,y)
+#
+#        for z in range(0,y):
+#            print y, z
+#            #            circle(Vector(-wirewid/2, (y*d - d/2 + 2*wirespace) - (y*circlespacing/2) + z*circlespacing), circlewid/2).plot()
+#            #            wire = (circle(Vector(wirewid/2, (y*d - d/2 + 2*wirespace) - (y*circlespacing/2) + z*circlespacing), circlewid/2)).intersect(wire)
+#            wire = (c + Vector(wirewid/2., (y*d - d/2. + 2.*wirespace) - ((y-1)*circlespacing/2.) + z*circlespacing)).intersect(wire)
 
 #    for
 
@@ -111,7 +111,12 @@ def dev2D(tip=1, tipwid=2, diskspacing=12, electspacing=5, gap=6, groundoffset=2
     electwid = 2*diskspacing/3.
     wirewid = diskspacing/2.
     wirespace = diskspacing/2.
-    gespace = 4*electwid
+    gespace = 4.5*electwid
+    
+    if wirespace >= wirespaceF:
+        wirespaceF = wirespace #+.001
+    if wirewid >= wirewidF:
+        wirewidF = wirewid #+.001
     
             
     v1 = Vector(math.cos(math.pi/2.+couplinglen/2.), math.sin(math.pi/2.+couplinglen/2.))
@@ -316,94 +321,95 @@ def starkRound1(fname):
     yi = 0
     
     P = [75, 100, 150];
-    CS = [5, 25] #, 8, 10, 15, 20
-    T = [0, 2, -1, -2, -4]#, 3]
-    N = [3, 2]
+    CS = [7, 10, 25] #, 8, 10, 15, 20
+    T = [0, 2] #, -7]#, 3]
+    N = [2]
     WWS = [10, 15]
-    DS = [8, 12, 20]
+    DS = [14, 16, 18, 20, 25, 30]
 
     for p in P:
         for cs in CS:
             for n in N:
-                yi += 1;
-                for t in T:
-                    for ds in DS:
-                        xi += 1;
-                        
-                        wws = 10
-                        
-#                        print p, cs, t
+                for wws in WWS:
+                    yi += 1;
+                    for t in T:
+                        for ds in DS:
+                            xi += 1;
+                            
+#                            wws = 10
 
-                        chip = Shape([], []);
-                        
-                        boxwid = 1400 - 4*wws
-                        
-                        tipwid = 2
+    #                        print p, cs, t
+
+                            chip = Shape([], []);
                             
-                        if t < 0:
-                            tipwid = -t
-                            t = 1
-                        
-                        tipwid *= ds/12.
-                        tipwid = int(tipwid*100)/100.
+                            boxwid = 1400 - 4*wws
                             
-                        if t == 3:
-                            [dev, devhgt] = dev2D(T[0], padsize=p, diskspacing=ds, wirewidF=wws, wirespaceF=wws, tipwid=tipwid, gespace=30)
-                        else:
-                            [dev, devhgt] = dev2D(t, padsize=p, diskspacing=ds, wirewidF=wws, wirespaceF=wws, tipwid=tipwid, gespace=30)
-                        
-                        [bbll, bbur] = dev.getBoundingBox()
-                        
-                        wid = bbur.x - bbll.x;
-                        
-                        capwid = (boxwid - wid - 4*wws)/2.
-                        
-                        numcap = int((boxwid/devhgt) + .25)
-                        
-                        for i in range(1, numcap+1):
+                            tipwid = 2
+                                
+                            if t < 0:
+                                tipwid = -t
+                                t = 1
+                            
+                            tipwid *= ds/12.
+                            tipwid = int(tipwid*100)/100.
+                                
                             if t == 3:
-                                if i == 1:
-                                    chip.add(dev + Vector(0, -boxwid/2. + (i-1)*devhgt + p + wws*2));
-                                else:
-#                                    print T[i-1]
-#                                    print dev2D(T[i-1], diskspacing=ds, padsize=p, wirewidF=wws, wirespaceF=wws, gespace=30)
-                                    t2 = T[i-1]
-                                    if t2 < 0:
-                                        t = 1
-                                        tipwid = -t2
-
-                                    chip.add(dev2D(t2, diskspacing=ds, padsize=p, wirewidF=wws, wirespaceF=wws, gespace=30, tipwid=tipwid) + Vector(0, boxwid/2. - i*devhgt));
+                                [dev, devhgt] = dev2D(T[0], padsize=p, diskspacing=ds, wirewidF=wws, wirespaceF=wws, tipwid=tipwid, gespace=30)
                             else:
-                                chip.add(dev + Vector(0, -boxwid/2. + (i-1)*devhgt + p + wws*2));
-                        
-                        [cap, capwidtrue] = capacitor(wirewid=wws, wirespace=cs, height=boxwid, width=capwid, paddepth=p, numY=n, circlewid=5, numcirclesets=4, addBreak=5)
-                        
-        #                [bbll, bbur] = cap.getBoundingBox()
+                                [dev, devhgt] = dev2D(t, padsize=p, diskspacing=ds, wirewidF=wws, wirespaceF=wws, tipwid=tipwid, gespace=30)
+                            
+                            [bbll, bbur] = dev.getBoundingBox()
+                            
+                            wid = bbur.x - bbll.x;
+                            
+                            capwid = (boxwid - wid - 4*wws)/2.
+                            
+                            numcap = int((boxwid/devhgt) + .25)
+                            
+                            for i in range(1, numcap+1):
+                                if t == 3:
+                                    if i == 1:
+                                        chip.add(dev + Vector(0, -boxwid/2. + (i-1)*devhgt + p + wws*2));
+                                    else:
+    #                                    print T[i-1]
+    #                                    print dev2D(T[i-1], diskspacing=ds, padsize=p, wirewidF=wws, wirespaceF=wws, gespace=30)
+                                        t2 = T[i-1]
+                                        if t2 < 0:
+                                            t = 1
+                                            tipwid = -t2
 
-        #                capwidtrue
+                                        chip.add(dev2D(t2, diskspacing=ds, padsize=p, wirewidF=wws, wirespaceF=wws, gespace=30, tipwid=tipwid) + Vector(0, boxwid/2. - i*devhgt));
+                                else:
+                                    chip.add(dev + Vector(0, -boxwid/2. + (i-1)*devhgt + p + wws*2));
+                            
+                            [cap, capwidtrue] = capacitor(wirewid=wws, wirespace=cs, height=boxwid, width=capwid, paddepth=p, numY=n, circlewid=5, numcirclesets=4, addBreak=5)
+                            
+            #                [bbll, bbur] = cap.getBoundingBox()
 
-                        chip.add(cap - Vector(boxwid/2., boxwid/2.));
-                        chip.add(cap + Vector(boxwid/2. - capwidtrue, -boxwid/2.));
+            #                capwidtrue
 
-                        height=boxwid
-                        paddepth=p
-                        numY=n
-                        
-                        l = int((height - paddepth)/float(numY) - paddepth)
-                        
-                        if   t == 0:
-                            type = "SQUARE"
-                        elif t == 1:
-                            type = "TIP:" + str(tipwid) + "UM"
-                        elif t == 2:
-                            type = "CIRCLE"
-                        elif t == 3:
-                            type = "MIXED"
+                            chip.add(cap - Vector(boxwid/2., boxwid/2.));
+                            chip.add(cap + Vector(boxwid/2. - capwidtrue, -boxwid/2.));
 
-                        chip.add(boundingDiamond(left="W=10um\nS=" + str(cs) + "um\nP=" + str(p) + "um\nL=" + str(l) + "um", center="T=" + type + "\nDS=" + str(ds) + "um\nP=" + str(p) + "um\n[" + str(xi) + ", " + str(yi) + "]", right="W=10um\nS=" + str(cs) + "um\nP=" + str(p) + "um\nL=" + str(l) + "um"));
+                            height=boxwid
+                            paddepth=p
+                            numY=n
+                            
+                            l = int((height - paddepth)/float(numY) - paddepth)
+                            
+                            if   t == 0:
+                                type = "SQUARE"
+                            elif t == 1:
+                                type = "TIP:" + str(tipwid) + "UM"
+                            elif t == 2:
+                                type = "CIRCLE"
+                            elif t == 3:
+                                type = "MIXED"
 
-                        gds.add(chip*(Matrix(1, -1, 1, 1, xi*2250, yi*2250)/math.sqrt(2)))
-                xi = 0;
+                            chip.add(boundingDiamond(left="W=10um\nS=" + str(cs) + "um\nP=" + str(p) + "um\nL=" + str(l) + "um", center="T=" + type + "\nDS=" + str(ds) + "um\nP=" + str(p) + "um\n[" + str(xi) + ", " + str(yi) + "]", right="W=10um\nS=" + str(cs) + "um\nP=" + str(p) + "um\nL=" + str(l) + "um"));
+
+                            gds.add(chip*(Matrix(1, -1, 1, 1, xi*2250, yi*2250)/math.sqrt(2)))
+                    xi = 0;
 
     
 #    yi += 1;
@@ -515,7 +521,7 @@ def starkRound1(fname):
     for xi in range(-2, len(T)*len(DS)-2):
         chip = Shape([], []);
         
-        wid = xi*xi
+        wid = 5*xi + 5
         
         x = -boxwid/2.
         h = -boxwid/2.
@@ -558,8 +564,10 @@ def starkRound1(fname):
         chip.add(boundingDiamond(left=string2, center=string, right=string2, centeru=" "));
         
         gds.add(chip*(Matrix(1, -1, 1, 1, (xi+3)*2250, yi*2250)/math.sqrt(2)))
+        gds.add(chip*(Matrix(1, -1, 1, 1, (xi+3)*2250, (yi+1)*2250)/math.sqrt(2)))
+        gds.add(chip*(Matrix(1, -1, 1, 1, (xi+3)*2250, (yi+2)*2250)/math.sqrt(2)))
             
-    yi += 1;
+    yi += 3;
                     
     for xi in range(0, len(T)*len(DS)):
 #        chip = Shape([], []);

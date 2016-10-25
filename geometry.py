@@ -75,7 +75,8 @@ class Material:
 materials = Materials([["Text", "#000000", "#CCCCCC"],
                        ["GaP",  "#CC6666", "#e6b3b3"],
                        ["NbN",  "#336600", "#99ff33"],
-                       ["Au",   "#FFCC00", "#ffe680"]])
+                       ["Au",   "#FFCC00", "#ffe680"],
+                       ["Membrane GaP",  "#CC6666", "#FFFFFF"]])
 
 print materials
 

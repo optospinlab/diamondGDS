@@ -5,7 +5,7 @@ global precision
 #precision = .05
 #precision = 1
 #precision = .05
-precision = .5
+precision = .05
 
 def printPrecision():
     print precision
@@ -628,7 +628,10 @@ def circle(c, r, p=precision):
     return toReturn
 
 def rect(a, b):
-    return Polyline([a, a + Vector(0,b.y - a.y), b, a + Vector(b.x - a.x, 0)], True)
+    if a.y == b.y or a.x == b.x:
+        return None
+    else:
+        return Polyline([a, a + Vector(0,b.y - a.y), b, a + Vector(b.x - a.x, 0)], True)
 
 def getArcAng(c, i, f, chooseShortest=True):
     r1 = (i - c).norm()
